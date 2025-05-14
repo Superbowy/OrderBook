@@ -12,16 +12,16 @@ std::string generate_random_id() {
 	std::mt19937 gen(rd());
 	std::uniform_int_distribution<> dis(0, chars.size() - 1);
 
-	for (int i = 0; i < 8; ++i) {
+	for (int i = 0; i < 12; ++i) {
 		id += chars[dis(gen)];
 	}
 	return id;
 }
 
-unsigned int queue_sum(std::queue<Order> q) {
+unsigned int queue_sum(std::queue<Order*> q) {
 	unsigned int result{0};
 	while (!q.empty()) {
-		result += q.front().quantity;
+		result += q.front()->quantity;
 		q.pop();
 	}
 	return result;

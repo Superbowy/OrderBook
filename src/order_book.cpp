@@ -3,14 +3,29 @@
 #include <iomanip>
 #include <iostream>
 
-void order_book::print() {
+double order_book::mid() const { return (best_bid() + best_ask()) / 2; }
+
+double order_book::best_bid() const {
+	if (bids.empty())
+		return 0.0;
+	return bids.begin()->first;
+}
+
+double order_book::best_ask() const {
+	if (asks.empty())
+		return 0.0;
+	return asks.begin()->first;
+}
+
+void order_book::print() const {
+	std::cout << "------------\n ORDER BOOK\n------------\n\n";
 	for (const auto &pair : bids) {
 		std::cout << std::fixed << std::setprecision(3) << "Price level: " << pair.first;
 		std::cout << "         ";
 		std::cout << "Quantity: " << queue_sum(pair.second) << "\n";
 	}
 
-	std::cout << "=========================================\n";
+	std::cout << "=========== MID : " << mid() << " ===============\n";
 
 	for (const auto &pair : asks) {
 		std::cout << std::fixed << std::setprecision(3) << "Price level: " << pair.first;
@@ -19,14 +34,24 @@ void order_book::print() {
 	}
 }
 
-void order_book::insert_limit(double price_level, unsigned int quantity, SIDE side) {
+bool order_book::cancel_order(std::string id) {
+	double price_level = orders[id]->price;
+	SIDE side = orders[id]->side;
+	if (side == SELL && asks[price_level].size() == 1) {
+		asks.erase(price_level);
+	}
+	if (side == BUY && bids[price_level].size() == 1) {
+		bids.erase(price_level);
+	}
+	delete orders[id];
+	return true;
+}
 
-	std::string id;
-	do {
-		id = generate_random_id();
-	} while (ids.contains(id));
+std::string order_book::insert_limit(double price_level, unsigned int quantity, SIDE side) {
 
-	Order order1 = {id, side, quantity};
+	std::string id = generate_random_id();
+
+	Order *order1 = new Order{id, side, quantity, price_level};
 
 	if (side == BUY) {
 		bids[price_level].push(order1);
@@ -34,60 +59,53 @@ void order_book::insert_limit(double price_level, unsigned int quantity, SIDE si
 		asks[price_level].push(order1);
 	}
 
-	ids.insert(id);
+	orders[id] = order1;
+	return id;
 }
 
-void order_book::insert_market(unsigned int quantity, SIDE side) {
-    if (side == BUY) {
-        // Process a buy market order, match against the sell side (asks)
-        for (auto it = asks.begin(); it != asks.end() && quantity > 0; ) {
-            auto &price_level = it->second; // Queue of orders at this price level
-            unsigned int total_position = queue_sum(price_level);
+bool order_book::insert_market(unsigned int quantity, SIDE side) {
+	if (side == BUY) {
+		for (auto it = asks.begin(); it != asks.end() && quantity > 0;) {
+			auto &price_level = it->second;
+			unsigned int total_position = queue_sum(price_level);
 
-            // If total position at this price level is more than quantity to be filled
-            if (total_position >= quantity) {
-                // Match remaining quantity
-                while (quantity > 0 && !price_level.empty()) {
-                    if (price_level.front().quantity > quantity) {
-                        price_level.front().quantity -= quantity;
-                        quantity = 0;
-                    } else {
-                        quantity -= price_level.front().quantity;
-                        price_level.pop();
-                    }
-                }
-                return;
-            } else {
-                // Fully consume this price level
-                quantity -= total_position;
-                it = asks.erase(it);  // Remove this price level from the book
-            }
-        }
-    } else if (side == SELL) {
-        // Process a sell market order, match against the buy side (bids)
-        for (auto it = bids.begin(); it != bids.end() && quantity > 0; ) {
-            auto &price_level = it->second; // Queue of orders at this price level
-            unsigned int total_position = queue_sum(price_level);
+			if (total_position >= quantity) {
+				while (quantity > 0 && !price_level.empty()) {
+					if (price_level.front()->quantity > quantity) {
+						price_level.front()->quantity -= quantity;
+						quantity = 0;
+					} else {
+						quantity -= price_level.front()->quantity;
+						price_level.pop();
+					}
+				}
+				return true;
+			} else {
+				quantity -= total_position;
+				it = asks.erase(it);
+			}
+		}
+	} else if (side == SELL) {
+		for (auto it = bids.begin(); it != bids.end() && quantity > 0;) {
+			auto &price_level = it->second;
+			unsigned int total_position = queue_sum(price_level);
 
-            // If total position at this price level is more than quantity to be filled
-            if (total_position >= quantity) {
-                // Match remaining quantity
-                while (quantity > 0 && !price_level.empty()) {
-                    if (price_level.front().quantity > quantity) {
-                        price_level.front().quantity -= quantity;
-                        quantity = 0;
-                    } else {
-                        quantity -= price_level.front().quantity;
-                        price_level.pop();
-                    }
-                }
-                return;
-            } else {
-                // Fully consume this price level
-                quantity -= total_position;
-                it = bids.erase(it);  // Remove this price level from the book
-            }
-        }
-    }
+			if (total_position >= quantity) {
+				while (quantity > 0 && !price_level.empty()) {
+					if (price_level.front()->quantity > quantity) {
+						price_level.front()->quantity -= quantity;
+						quantity = 0;
+					} else {
+						quantity -= price_level.front()->quantity;
+						price_level.pop();
+					}
+				}
+				return true;
+			} else {
+				quantity -= total_position;
+				it = bids.erase(it);
+			}
+		}
+	}
+	return true;
 }
-

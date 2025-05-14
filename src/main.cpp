@@ -1,13 +1,14 @@
 #include "../headers/order_book.h"
+#include <chrono>
 #include <cstdlib>
-#include <iostream>
+#include <thread>
 
 const double ASSET_PRICE = 100;
 const int MAX_SPREAD = 100; // IN BP
 
-int main() {
+const int TICK = 500;
 
-    std::cout << "------------\n ORDER BOOK\n------------\n\n";
+int main() {
 
 	srand(time(0));
 
@@ -24,12 +25,31 @@ int main() {
 		order_book.insert_limit(price_ask, size_ask, SELL);
 	}
 
-	order_book.print();
-    
-    order_book.insert_market(32, BUY);
+	while (true) {
+		system("clear");
+		order_book.print();
+		std::this_thread::sleep_for(std::chrono::milliseconds(TICK));
 
-    std::cout << "--------------------------------------------------------------------------------\n";
+		int r = rand() % 100;
 
-	order_book.print();
+		if (r < 40) {
+			SIDE side = (rand() % 2 == 0) ? BUY : SELL;
+			unsigned int size = rand() % 51 + 1;
+			order_book.insert_market(size, side);
+		} else if (r < 70) {
+			double price_bid = order_book.best_bid() - ((rand() % 3 + 1) / 100.0);
+			double price_ask = order_book.best_ask() + ((rand() % 3 + 1) / 100.0);
+
+			unsigned int size_bid = rand() % 51 + 1;
+			unsigned int size_ask = rand() % 51 + 1;
+
+			order_book.insert_limit(price_bid, size_bid, BUY);
+			order_book.insert_limit(price_ask, size_ask, SELL);
+		} else {
+			//order_book.random_cancel();
+		}
+	}
+
 	return 0;
 }
+
