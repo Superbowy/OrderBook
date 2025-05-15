@@ -8,16 +8,16 @@
 class order_book {
 
   private:
-	std::map<double, std::queue<Order *>> bids;
-	std::map<double, std::queue<Order *>> asks;
+	std::map<float, std::queue<Order *>> bids;
+	std::map<float, std::queue<Order *>> asks;
 	std::unordered_map<std::string, Order *> orders;
 
   public:
-    double mid() const;
-	double best_bid() const;
-	double best_ask() const;
+    float mid() const;
+	float best_bid() const;
+	float best_ask() const;
 
-	std::string insert_limit(double price_level, unsigned int quantity, SIDE side);
+	std::string insert_limit(float price_level, unsigned int quantity, SIDE side);
 	bool insert_market(unsigned int quantity, SIDE side);
 	bool cancel_order(std::string id);
 

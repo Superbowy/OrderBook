@@ -3,15 +3,15 @@
 #include <iomanip>
 #include <iostream>
 
-double order_book::mid() const { return (best_bid() + best_ask()) / 2; }
+float order_book::mid() const { return (best_bid() + best_ask()) / 2; }
 
-double order_book::best_bid() const {
+float order_book::best_bid() const {
 	if (bids.empty())
 		return 0.0;
-	return bids.begin()->first;
+	return std::prev(bids.end())->first;
 }
 
-double order_book::best_ask() const {
+float order_book::best_ask() const {
 	if (asks.empty())
 		return 0.0;
 	return asks.begin()->first;
@@ -47,7 +47,7 @@ bool order_book::cancel_order(std::string id) {
 	return true;
 }
 
-std::string order_book::insert_limit(double price_level, unsigned int quantity, SIDE side) {
+std::string order_book::insert_limit(float price_level, unsigned int quantity, SIDE side) {
 
 	std::string id = generate_random_id();
 
@@ -64,48 +64,55 @@ std::string order_book::insert_limit(double price_level, unsigned int quantity, 
 }
 
 bool order_book::insert_market(unsigned int quantity, SIDE side) {
-	if (side == BUY) {
-		for (auto it = asks.begin(); it != asks.end() && quantity > 0;) {
-			auto &price_level = it->second;
-			unsigned int total_position = queue_sum(price_level);
+if (side == BUY) {
+for (auto it = asks.begin(); it != asks.end() && quantity > 0; ) {
+auto& price_level = it->second;
+unsigned int available = queue_sum(price_level);
 
-			if (total_position >= quantity) {
-				while (quantity > 0 && !price_level.empty()) {
-					if (price_level.front()->quantity > quantity) {
-						price_level.front()->quantity -= quantity;
-						quantity = 0;
-					} else {
-						quantity -= price_level.front()->quantity;
-						price_level.pop();
-					}
-				}
-				return true;
-			} else {
-				quantity -= total_position;
-				it = asks.erase(it);
-			}
-		}
-	} else if (side == SELL) {
-		for (auto it = bids.begin(); it != bids.end() && quantity > 0;) {
-			auto &price_level = it->second;
-			unsigned int total_position = queue_sum(price_level);
+        if (available >= quantity) {
+            while (quantity > 0 && !price_level.empty()) {
+                auto& front_order = price_level.front();
+                if (front_order->quantity > quantity) {
+                    front_order->quantity -= quantity;
+                    quantity = 0;
+                } else {
+                    quantity -= front_order->quantity;
+                    price_level.pop();
+                }
+            }
+            if (price_level.empty()) it = asks.erase(it);
+            return true;
+        } else {
+            quantity -= available;
+            it = asks.erase(it);
+        }
+    }
+} else if (side == SELL) {
+    for (auto it = bids.rbegin(); it != bids.rend() && quantity > 0; ) {
+        auto& price_level = it->second;
+        unsigned int available = queue_sum(price_level);
 
-			if (total_position >= quantity) {
-				while (quantity > 0 && !price_level.empty()) {
-					if (price_level.front()->quantity > quantity) {
-						price_level.front()->quantity -= quantity;
-						quantity = 0;
-					} else {
-						quantity -= price_level.front()->quantity;
-						price_level.pop();
-					}
-				}
-				return true;
-			} else {
-				quantity -= total_position;
-				it = bids.erase(it);
-			}
-		}
-	}
-	return true;
+        if (available >= quantity) {
+            while (quantity > 0 && !price_level.empty()) {
+                auto& front_order = price_level.front();
+                if (front_order->quantity > quantity) {
+                    front_order->quantity -= quantity;
+                    quantity = 0;
+                } else {
+                    quantity -= front_order->quantity;
+                    price_level.pop();
+                }
+            }
+            if (price_level.empty()) {
+                // Convert reverse_iterator to base iterator, then erase
+                bids.erase(std::next(it).base());
+            }
+            return true;
+        } else {
+            quantity -= available;
+            it = std::make_reverse_iterator(bids.erase(std::next(it).base()));
+        }
+    }
+}
+return true;
 }

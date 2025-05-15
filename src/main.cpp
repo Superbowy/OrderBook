@@ -3,10 +3,10 @@
 #include <cstdlib>
 #include <thread>
 
-const double ASSET_PRICE = 100;
+const float ASSET_PRICE = 100;
 const int MAX_SPREAD = 100; // IN BP
 
-const int TICK = 500;
+const int TICK = 100;
 
 int main() {
 
@@ -15,8 +15,8 @@ int main() {
 	order_book order_book;
 
 	for (int i = 0; i < 10; i++) {
-		double price_bid = ASSET_PRICE - ((rand() % MAX_SPREAD + 1) / 100.0);
-		double price_ask = ASSET_PRICE + ((rand() % MAX_SPREAD + 1) / 100.0);
+		float price_bid = ASSET_PRICE - ((rand() % MAX_SPREAD + 1) / 100.0);
+		float price_ask = ASSET_PRICE + ((rand() % MAX_SPREAD + 1) / 100.0);
 
 		unsigned int size_bid = rand() % 101 + 1;
 		unsigned int size_ask = rand() % 101 + 1;
@@ -37,8 +37,8 @@ int main() {
 			unsigned int size = rand() % 51 + 1;
 			order_book.insert_market(size, side);
 		} else if (r < 70) {
-			double price_bid = order_book.best_bid() - ((rand() % 3 + 1) / 100.0);
-			double price_ask = order_book.best_ask() + ((rand() % 3 + 1) / 100.0);
+			float price_bid = order_book.best_bid() - ((rand() % 3 + 1) / 100.0);
+			float price_ask = order_book.best_ask() + ((rand() % 3 + 1) / 100.0);
 
 			unsigned int size_bid = rand() % 51 + 1;
 			unsigned int size_ask = rand() % 51 + 1;
