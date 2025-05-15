@@ -16,10 +16,12 @@ class order_book {
     float mid() const;
 	float best_bid() const;
 	float best_ask() const;
+    float spread() const;
 
 	std::string insert_limit(float price_level, unsigned int quantity, SIDE side);
 	bool insert_market(unsigned int quantity, SIDE side);
 	bool cancel_order(std::string id);
+    bool match();
 
     bool random_cancel();
 	void print() const;
